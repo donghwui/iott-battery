@@ -1,0 +1,60 @@
+function doPost(e) {
+  try {
+    // 1) Parse the incoming JSON
+    var data = JSON.parse(e.postData.contents);
+    
+    // 2) Extract the fields you want to log
+    var deviceId = data.deviceId;
+    var timestamp = data.timestamp;
+    var battery = data.battery;
+    
+    // 3) Get the sheet you want to write to
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Sheet1"); // Update with your sheet name
+    
+    // 4) Append a row with both timestamp AND the value
+    sheet.appendRow([timestamp, battery, deviceId]);
+    
+    // 5) Return a success message
+    return ContentService
+      .createTextOutput("OK")
+      .setMimeType(ContentService.MimeType.TEXT);
+
+  } catch (error) {
+    // Log any errors for debugging
+    Logger.log("Error in doPost: " + error);
+    return ContentService
+      .createTextOutput("Error")
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+function doGet(e) {
+  var deviceIdFilter = e.parameter.deviceId;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Sheet1");
+  var data = sheet.getDataRange().getValues(); // All rows
+
+  var timestamps = [];
+  var battery = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var timestamp = data[i][0];
+    var batteryValue = data[i][1];
+    var deviceId = data[i][2];
+
+    if (!deviceIdFilter || deviceId === deviceIdFilter) {
+      timestamps.push(timestamp);
+      battery.push(batteryValue);
+    }
+  }
+
+  var output = {
+    timestamps: timestamps,
+    battery: battery
+  };
+
+  return ContentService
+    .createTextOutput(JSON.stringify(output))
+    .setMimeType(ContentService.MimeType.JSON);
+}
